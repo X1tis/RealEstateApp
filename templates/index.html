@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Подбор недвижимости и объявления</title>
+  <style>
+    body {
+      font-family: 'Arial', sans-serif;
+      background: linear-gradient(135deg, #74ebd5, #ACB6E5);
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+    .container {
+      width: 90%;
+      max-width: 900px;
+      background-color: #fff;
+      border-radius: 15px;
+      box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+      overflow: hidden;
+    }
+    header {
+      background: #28a745;
+      color: #fff;
+      padding: 20px;
+      text-align: center;
+    }
+    header img {
+      width: 60px;
+      height: 60px;
+      display: block;
+      margin: 0 auto 10px;
+    }
+    .content {
+      padding: 20px;
+    }
+    h2 {
+      margin-top: 0;
+      color: #333;
+    }
+    input, textarea, button {
+      width: 100%;
+      padding: 12px;
+      margin: 8px 0;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      box-sizing: border-box;
+      font-size: 16px;
+    }
+    button {
+      background-color: #28a745;
+      color: #fff;
+      border: none;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    button:hover {
+      background-color: #218838;
+    }
+    #result {
+      font-size: 20px;
+      font-weight: bold;
+      color: #007bff;
+      margin-top: 15px;
+    }
+    .properties {
+      margin-top: 15px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      grid-gap: 15px;
+    }
+    .card {
+      background-color: #fff;
+      border-radius: 10px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      padding: 15px;
+      transition: transform 0.2s;
+    }
+    .card:hover {
+      transform: translateY(-5px);
+    }
+    .card h3 {
+      margin: 0 0 10px 0;
+      font-size: 18px;
+      color: #333;
+    }
+    .card p {
+      font-size: 16px;
+      color: #555;
+    }
+    .card a {
+      display: inline-block;
+      margin-top: 10px;
+      color: #28a745;
+      text-decoration: none;
+      font-weight: bold;
+    }
+    .card a:hover {
+      text-decoration: underline;
+    }
+    .delete-button {
+      background-color: #dc3545;
+      margin-top: 10px;
+    }
+    .delete-button:hover {
+      background-color: #c82333;
+    }
+    .create-ad-form {
+      margin-top: 20px;
+      padding: 15px;
+      background-color: #f9f9f9;
+      border-radius: 10px;
+      border: 1px solid #ddd;
+    }
+    .create-ad-form input,
+    .create-ad-form textarea {
+      margin-bottom: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <img src="https://via.placeholder.com/60?text=🏠" alt="Ипотека">
+      <h1>Ипотечный калькулятор и подбор недвижимости</h1>
+    </header>
+    <div class="content">
+      <!-- Калькулятор ипотеки -->
+      <h2>Расчет ежемесячного платежа</h2>
+      <label>Цена (₽):</label>
+      <input type="number" id="price" placeholder="Введите стоимость недвижимости">
+      
+      <label>Первый взнос (₽):</label>
+      <input type="number" id="downPayment" placeholder="Введите сумму первого взноса">
+      
+      <label>Процентная ставка (%):</label>
+      <input type="number" id="interestRate" placeholder="Введите годовую процентную ставку">
+      
+      <label>Срок (лет):</label>
+      <input type="number" id="loanTerm" placeholder="Введите срок кредита в годах">
+      
+      <button onclick="calculateMortgage()">Рассчитать</button>
+      <div id="result"></div>
+      
+      <hr>
+      
+      <!-- Объявления с Avito (Череповец) -->
+      <h2>Объявления с Avito (Череповец)</h2>
+      <button onclick="loadProperties()">Загрузить объявления с Avito</button>
+      <div class="properties" id="properties"></div>
+      
+      <hr>
+      
+      <!-- Форма создания пользовательского объявления -->
+      <h2>Создать свое объявление</h2>
+      <div class="create-ad-form">
+        <label>Заголовок:</label>
+        <input type="text" id="adTitle" placeholder="Введите заголовок">
+        
+        <label>Цена (₽):</label>
+        <input type="text" id="adPrice" placeholder="Введите цену">
+        
+        <label>Ссылка на объявление (если есть):</label>
+        <input type="text" id="adLink" placeholder="Введите ссылку">
+        
+        <label>Описание:</label>
+        <textarea id="adDescription" placeholder="Введите описание"></textarea>
+        
+        <button onclick="createAd()">Создать объявление</button>
+      </div>
+      
+      <!-- Пользовательские объявления -->
+      <h2>Мои объявления</h2>
+      <button onclick="loadUserAds()">Загрузить мои объявления</button>
+      <div class="properties" id="userProperties"></div>
+    </div>
+  </div>
+
+  <script>
+    function loadProperties() {
+      let propertiesDiv = document.getElementById("properties");
+      propertiesDiv.innerHTML = "<p>Загрузка объявлений...</p>";
+      fetch("/get_properties")
+        .then(response => response.json())
+        .then(data => {
+          propertiesDiv.innerHTML = "";
+          data.forEach(item => {
+            propertiesDiv.innerHTML += `
+              <div class="card">
+                <h3>${item.title}</h3>
+                <p>Цена: ${item.price} ₽</p>
+                <a href="${item.link}" target="_blank">Подробнее</a>
+              </div>
+            `;
+          });
+        })
+        .catch(error => {
+          propertiesDiv.innerHTML = "<p>Ошибка загрузки объявлений.</p>";
+        });
+    }
+
+    function calculateMortgage() {
+      let price = parseFloat(document.getElementById("price").value);
+      let downPayment = parseFloat(document.getElementById("downPayment").value);
+      let interestRate = parseFloat(document.getElementById("interestRate").value);
+      let loanTerm = parseFloat(document.getElementById("loanTerm").value);
+      let loanAmount = price - downPayment;
+      let monthlyRate = (interestRate / 100) / 12;
+      let numberOfPayments = loanTerm * 12;
+      let monthlyPayment;
+      if (monthlyRate > 0) {
+        monthlyPayment = (loanAmount * monthlyRate) / (1 - Math.pow(1 + monthlyRate, -numberOfPayments));
+      } else {
+        monthlyPayment = loanAmount / numberOfPayments;
+      }
+      document.getElementById("result").innerText = `Ежемесячный платеж: ${monthlyPayment.toFixed(2)} ₽`;
+    }
+
+    function createAd() {
+      let title = document.getElementById("adTitle").value;
+      let price = document.getElementById("adPrice").value;
+      let link = document.getElementById("adLink").value;
+      let description = document.getElementById("adDescription").value;
+      fetch("/create_ad", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title, price, link, description })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.status === "ok") {
+          alert("Объявление создано!");
+          loadUserAds();
+        } else {
+          alert("Ошибка при создании объявления");
+        }
+      });
+    }
+
+    function deleteAd(id) {
+      fetch("/delete_ad", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.status === "ok") {
+          alert("Объявление удалено");
+          loadUserAds();
+        } else {
+          alert("Ошибка при удалении объявления");
+        }
+      });
+    }
+
+    function loadUserAds() {
+      fetch("/get_user_ads")
+        .then(response => response.json())
+        .then(data => {
+          let userPropertiesDiv = document.getElementById("userProperties");
+          userPropertiesDiv.innerHTML = "";
+          data.forEach(item => {
+            userPropertiesDiv.innerHTML += `
+              <div class="card">
+                <h3>${item.title}</h3>
+                <p>Цена: ${item.price} ₽</p>
+                ${item.description ? `<p>${item.description}</p>` : ""}
+                ${item.link ? `<a href="${item.link}" target="_blank">Подробнее</a>` : ""}
+                <button class="delete-button" onclick="deleteAd('${item.id}')">Удалить</button>
+              </div>
+            `;
+          });
+        });
+    }
+  </script>
+</body>
+</html>
